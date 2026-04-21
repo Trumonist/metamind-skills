@@ -28,7 +28,19 @@ Do not exceed on a single run:
 
 If budget runs out before all clusters covered — output partial shortlist + explicit `[INCOMPLETE: clusters X,Y not researched]` marker.
 
-## Workflow — 10 steps
+## IMPORTANT — the purpose of this skill is synthesis, not installation
+
+The 3-section shortlist (import / fork / write) is **analysis**, not an install plan.
+
+**Do NOT:**
+- Clone found skills into the sandbox and claim they are "installed" — sandbox files do NOT persist across sessions. `/new` re-mounts the git repo from upstream and your local files disappear.
+- Write multiple narrow skills and install each separately — this fragments the role.
+
+**Instead, after producing the shortlist, proceed to step 11 (Consolidate):** synthesize ONE custom role-skill that combines the best of sections A/B/C, then install that single skill via the `/skills-draft` endpoint (not git clone).
+
+The installation contract is in step 12.
+
+## Workflow — 12 steps
 
 ### 1. Parse role brief
 
@@ -128,6 +140,72 @@ Include at top:
 - Budget used (queries / fetches used out of cap)
 - Funnel notes (what surprised you, where evidence was weak)
 
+### 11. Consolidate — synthesize ONE role-skill
+
+After the user approves the shortlist (or in the same turn if the brief is clear), compose a single SKILL.md that:
+
+- **Picks 3-5 techniques from section A** — import their logic as *sections* of your new skill, not as separate skills. Attribute original sources in YAML frontmatter:
+  ```yaml
+  based_on:
+    - source: coreyhaines31/marketingskills
+      used: copywriting principles, hook matrix
+      license: MIT
+    - source: anthropics/skills
+      used: review-contract playbook structure
+      license: Apache-2.0
+  ```
+- **Adapts section B** — translates, re-targets, or de-vendor-locks in the same document.
+- **Writes section C gaps from scratch** — fills the missing expertise right here.
+- **Uses mode markers** — one skill, many workflows. Example for legal role:
+  ```
+  [REVIEW]  — contract review with RED/YELLOW/GREEN + redlines
+  [DRAFT]   — NDA/SLA clause library with fallbacks
+  [GDPR]    — GDPR compliance checklist + DPA
+  [152]     — 152-ФЗ checklist with 266-ФЗ amendments
+  ```
+  User triggers a mode with `[MODE]` in the request, or the skill infers.
+
+The output is **one SKILL.md**, 200-600 lines typically, with inline examples. Not a collection of files.
+
+### 12. Install via `/skills-draft` (the ONLY correct way)
+
+Do **not** `git clone` or write files to `/workspace/*` in the sandbox — those paths are ephemeral.
+
+To make the consolidated skill persistent and subscribed:
+
+```bash
+# From inside the sandbox:
+curl -sS -X POST \
+  -H "Content-Type: application/json" \
+  -d "{
+    \"session_id\": \"<extract from META header>\",
+    \"token\": \"<upload_token from META>\",
+    \"slug\": \"<role-slug>\",
+    \"skill_md\": <the full SKILL.md content as a JSON string>,
+    \"rationale\": \"<1-2 sentences on what gaps this closes>\"
+  }" \
+  "$BRIDGE_BASE_URL/skills-draft"
+```
+
+Replace:
+- `session_id` / `token` — from the `[META: ...]` block in the first user message of the session (same values as `upload_token` / `upload_url`).
+- `BRIDGE_BASE_URL` — the host from `upload_url` (strip `/sandbox/upload/<id>`).
+
+On success the endpoint returns:
+```json
+{"ok": true, "slug": "...", "commit_url": "https://github.com/...", "next_step": "..."}
+```
+
+The backend will:
+1. Commit your SKILL.md to `Trumonist/metamind-skills` at path `users/<tg_user_id>/skills/<slug>/SKILL.md`
+2. Insert the skill row in DB with `visibility='private'`, `created_by_user_id=<tg_user_id>`
+3. Subscribe the user's current bot to the skill automatically
+
+**After install — tell the user:**
+> Скилл `<slug>` создан и подписан. Чтобы он активировался, обнови сессию командой `/new` — текущая история сообщений очистится, но скилл появится в `[AVAILABLE_SKILLS]`.
+
+Do NOT say "installed" or "ready to use" without this `/new` instruction — the skill is only mounted on the NEXT session.
+
 ## Reference files
 
 - `reference/sources.md` — URL catalog (Tier 1-7)
@@ -148,6 +226,9 @@ Include at top:
 - Skip deep-read of SKILL.md — aggregator blurbs often hide dependencies
 - Include paid/API-locked skills without marking `⚠️ needs-API-key`
 - Rate without reading — "looks good" is not a rating
+- **Clone found skills into `/workspace/*` and call it "installed"** — sandbox is ephemeral; only `/skills-draft` endpoint persists
+- **Install multiple separate skills after shortlist** — you are supposed to synthesize ONE consolidated role-skill in step 11
+- **Tell the user "skill is ready"** without instructing `/new` — skills only mount on the next session
 
 ## Output contract
 
