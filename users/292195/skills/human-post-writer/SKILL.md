@@ -39,6 +39,9 @@ Every sentence must pass the "would a real person write this?" test. If it sound
 - "leverage", "paradigm shift", "holistic approach"
 - Passive voice as default
 
+**Punctuation:**
+- Em-dash (—) is forbidden everywhere. Replace with a period, comma, or restructure the sentence.
+
 ---
 
 ## REQUIRED techniques
